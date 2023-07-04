@@ -1,4 +1,6 @@
 # -*- encoding=utf8 -*-
+pip install airtest
+pip install pocoui
 
 import socket
 
@@ -104,8 +106,88 @@ def init_douyin():
     sleep_time = random.randint(2000, 6000)
     print("设备{}: 看完了，休息{}分钟".format(num, round(sleep_time / 60), 2))
     sleep(sleep_time)  # 休息一会
+   # 自动搜索和自动关注
+    search_keywords = ["美食", "旅行", "健身"]  # 搜索关键词列表
+    search_result_count = 3  # 搜索结果数量
+    follow_delay = 5  # 关注延迟时间
 
+    for keyword in search_keywords:
+        # 在搜索框中输入关键词并搜索
+        poco(name="com.ss.android.ugc.aweme:id/search_edit").set_text(keyword)
+        poco(name="com.ss.android.ugc.aweme:id/search_icon").click()
 
+        # 等待搜索结果加载完成
+        poco.wait_for_appearance(name="com.ss.android.ugc.aweme:id/user_avatar", timeout=10)
+
+        # 获取搜索结果的用户列表
+        user_list = poco(name="com.ss.android.ugc.aweme:id/user_avatar")
+        if len(user_list) < search_result_count:
+            # 如果搜索结果数量不足，可以进行其他处理
+            print("设备{}: 搜索结果数量不足".format(num))
+            continue
+
+        # 遍历搜索结果并逐个关注
+        for i in range(search_result_count):
+            user = user_list[i]
+            user_name = user.attr("desc")
+            print("设备{}: 关注用户 {}".format(num, user_name))
+
+            # 点击用户头像进入用户主页
+            user.click()
+            sleep(2)
+
+            # 判断是否已关注该用户，如果已关注则跳过
+            if poco(name="com.ss.android.ugc.aweme:id/f9j", desc="关注").exists():
+                # 点击关注按钮进行关注
+                poco(name="com.ss.android.ugc.aweme:id/f9j", desc="关注").click()
+                print("设备{}: 成功关注用户 {}".format(num, user_name))
+                sleep(follow_delay)
+            else:
+                print("设备{}: 用户 {} 已关注，跳过".format(num, user_name))
+
+            # 返回搜索结果页面
+            poco(name="com.ss.android.ugc.aweme:id/common_title_bar_back_btn").click()
+            sleep(2)
+
+ # 自动评论
+    comment_list = ["这个视频太棒了！", "喜欢这个视频！", "加油，继续努力！"]
+    if poco(name="com.ss.android.ugc.aweme:id/ct").exists():
+        print("设备{}: 视频底部加载动画".format(num))
+        return
+
+    # 获取视频描述和用户名
+    video_desc = poco(name="com.ss.android.ugc.aweme:id/desc").get_text()
+    user_name = poco(name="com.ss.android.ugc.aweme:id/user_avatar", type="android.widget.ImageView").attr("desc")
+
+    print("设备{}: 描述: {} 用户名: {} 观看{}秒".format(num, video_desc, user_name, wait_time))
+
+    # 随机选择评论内容并发送评论
+    comment = random.choice(comment_list)
+    poco(name="com.ss.android.ugc.aweme:id/comment_edit").click()
+    poco(name="com.ss.android.ugc.aweme:id/comment_edit").set_text(comment)
+    poco(name="com.ss.android.ugc.aweme:id/comment_send").click()
+    print("设备{}: 发送评论: {}".format(num, comment))
+
+    # 自动回复
+    reply_list = ["谢谢你的支持！", "感谢你的喜欢！", "很高兴能得到你的评论！"]
+    # 获取最新评论的用户名和评论内容
+    latest_comment = poco(name="com.ss.android.ugc.aweme:id/comment_text")[0]
+    latest_user_name = latest_comment.child("com.ss.android.ugc.aweme:id/tv_comment_name").get_text()
+    latest_comment_text = latest_comment.child("com.ss.android.ugc.aweme:id/tv_comment_text").get_text()
+
+    # 随机选择回复内容并发送回复
+    reply = random.choice(reply_list)
+    reply_text = "@{} {}".format(latest_user_name, reply)
+    poco(name="com.ss.android.ugc.aweme:id/comment_edit").click()
+    poco(name="com.ss.android.ugc.aweme:id/comment_edit").set_text(reply_text)
+    poco(name="com.ss.android.ugc.aweme:id/comment_send").click()
+    print("设备{}: 发送回复: {}".format(num, reply_text))
+
+    # 自动点赞
+    poco(name="com.ss.android.ugc.aweme:id/like_layout").click()
+    print("设备{}: 点赞".format(num))
+
+    sleep(wait_time)
 def live_room():
     print("设备{} 进入直播间".format(num))
     handler(signal.SIGTERM, None)
